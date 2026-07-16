@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-list-system-printers"
+description = "Enables the list_system_printers command without any pre-configured scope."
+commands.allow = ["list_system_printers"]
+
+[[permission]]
+identifier = "deny-list-system-printers"
+description = "Denies the list_system_printers command without any pre-configured scope."
+commands.deny = ["list_system_printers"]

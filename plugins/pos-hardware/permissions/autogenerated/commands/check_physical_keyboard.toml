@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-check-physical-keyboard"
+description = "Enables the check_physical_keyboard command without any pre-configured scope."
+commands.allow = ["check_physical_keyboard"]
+
+[[permission]]
+identifier = "deny-check-physical-keyboard"
+description = "Denies the check_physical_keyboard command without any pre-configured scope."
+commands.deny = ["check_physical_keyboard"]

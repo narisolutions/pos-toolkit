@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-toggle-virtual-keyboard"
+description = "Enables the toggle_virtual_keyboard command without any pre-configured scope."
+commands.allow = ["toggle_virtual_keyboard"]
+
+[[permission]]
+identifier = "deny-toggle-virtual-keyboard"
+description = "Denies the toggle_virtual_keyboard command without any pre-configured scope."
+commands.deny = ["toggle_virtual_keyboard"]

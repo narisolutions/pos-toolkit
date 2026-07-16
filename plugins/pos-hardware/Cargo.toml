@@ -1,0 +1,33 @@
+[package]
+name = "tauri-plugin-pos-hardware"
+version = "0.1.0"
+description = "POS peripheral layer for Tauri apps: ESC/POS printing (network/USB/spooler), cash-drawer kick, USB printer enumeration, keyboard handling"
+authors = ["Nari Solutions"]
+license = "Apache-2.0"
+repository = "https://github.com/narisolutions/pos-toolkit"
+edition = "2021"
+links = "tauri-plugin-pos-hardware"
+
+[dependencies]
+tauri = { version = "2", default-features = false }
+serde = { version = "1", features = ["derive"] }
+log = "0.4"
+# `usb` uses rusb/libusb and scans all interfaces for bulk IN+OUT — fixes Windows
+# "no suitable interface number found" from `native_usb` (nusb) when `interfaces()`
+# is empty. (Carried over from medusa-pos.)
+escpos = { version = "0.19.0", features = ["graphics", "usb"] }
+rusb = "0.9"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Devices_HumanInterfaceDevice",
+    "Win32_UI_Input",
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Printing",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+] }
