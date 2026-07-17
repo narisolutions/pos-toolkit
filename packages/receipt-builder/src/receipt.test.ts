@@ -114,6 +114,13 @@ describe("helpers", () => {
     expect(unmapped).toHaveLength(7);
   });
 
+  it("translit-ka maps Georgian to the 2002 national Latin transliteration", () => {
+    expect(sanitizePrinterString("ხინკალი", "translit-ka")).toBe("khinkali");
+    expect(sanitizePrinterString("საფერავის სანგრია", "translit-ka")).toBe("saperavis sangria");
+    // mixed input: Latin passes through, leftover non-ASCII still strips
+    expect(sanitizePrinterString("Qvevri ღვინო №5", "translit-ka")).toBe("Qvevri ghvino 5");
+  });
+
   it("ascii sanitize strips accents like the medusa-pos original", () => {
     expect(sanitizePrinterString("Crème brûlée", "ascii")).toBe("Creme brulee");
   });

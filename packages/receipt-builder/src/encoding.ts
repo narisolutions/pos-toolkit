@@ -11,7 +11,21 @@
  * - "cp852": maps Central-European characters to ASCII lookalikes, then "?"
  *   for anything else non-ASCII.
  */
-export type PrinterEncoding = "ascii" | "utf8" | "cp852";
+export type PrinterEncoding = "ascii" | "utf8" | "cp852" | "translit-ka";
+
+/**
+ * Georgian mkhedruli → Latin, the 2002 national transliteration system.
+ * For printers with no Georgian codepage or UTF-8 mode (e.g. Rongta RP850P):
+ * zero latency cost vs rasterizing text as images.
+ */
+// prettier-ignore
+const KA_TRANSLIT: Record<string, string> = {
+  "ა": "a", "ბ": "b", "გ": "g", "დ": "d", "ე": "e", "ვ": "v", "ზ": "z",
+  "თ": "t", "ი": "i", "კ": "k", "ლ": "l", "მ": "m", "ნ": "n", "ო": "o",
+  "პ": "p", "ჟ": "zh", "რ": "r", "ს": "s", "ტ": "t", "უ": "u", "ფ": "p",
+  "ქ": "k", "ღ": "gh", "ყ": "q", "შ": "sh", "ჩ": "ch", "ც": "ts", "ძ": "dz",
+  "წ": "ts", "ჭ": "ch", "ხ": "kh", "ჯ": "j", "ჰ": "h",
+};
 
 // prettier-ignore
 const CP852_MAP: Record<string, string> = {
@@ -62,8 +76,15 @@ export function sanitizePrinterString(
     return mapped.replace(ESCPOS_CONTROL_BYTES, "").replace(/\s+/g, " ").trim();
   }
 
+  // "translit-ka": map Georgian to Latin first, then the ascii path cleans
+  // whatever remains (other scripts, accents).
+  const source =
+    encoding === "translit-ka"
+      ? text.split("").map((ch) => KA_TRANSLIT[ch] ?? ch).join("")
+      : text;
+
   // "ascii"
-  const normalized = text.normalize("NFD");
+  const normalized = source.normalize("NFD");
   return normalized
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^\x20-\x7E]/g, "")
