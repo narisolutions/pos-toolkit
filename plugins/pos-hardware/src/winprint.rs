@@ -9,6 +9,8 @@ use windows::{
 };
 
 #[derive(serde::Serialize, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "camelCase")]
 pub struct SystemPrinterInfo {
     pub name: String,
     pub driver_name: String,

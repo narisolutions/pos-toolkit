@@ -3,6 +3,7 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
 pub struct UsbDeviceInfo {
     pub vendor_id: u16,

@@ -18,6 +18,7 @@ use crate::winprint;
 
 /// Where the bytes go.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum PrinterTarget {
     /// Raw TCP, default port 9100.
@@ -36,6 +37,7 @@ fn default_port() -> u16 {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum Align {
     Left,
@@ -45,6 +47,7 @@ pub enum Align {
 
 /// One printer instruction. Hosts compose receipts/tickets out of these.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(tag = "op", rename_all = "camelCase")]
 pub enum PrintOp {
     /// A line of text (UTF-8 pass-through; Georgian etc. depends on printer firmware).
