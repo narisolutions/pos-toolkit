@@ -1,0 +1,23 @@
+{
+  "name": "@narisolutions/receipt-builder",
+  "version": "0.1.0",
+  "description": "Fixed-width receipt text builder for ESC/POS printers: paper-width layout, money-row padding, printer-safe character encodings. Ships as TypeScript source.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/narisolutions/pos-toolkit",
+    "directory": "packages/receipt-builder"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  }
+}

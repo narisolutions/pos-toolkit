@@ -1,0 +1,26 @@
+{
+  "name": "@narisolutions/pos-toolkit",
+  "version": "0.1.0",
+  "description": "POS building blocks by Nari Solutions. TypeScript packages ship as source under subpath exports; consume the repo as a git dependency until npm publishing is set up.",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/narisolutions/pos-toolkit",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "exports": {
+    "./receipt-builder": "./packages/receipt-builder/src/index.ts"
+  },
+  "files": [
+    "packages/receipt-builder/src",
+    "!**/*.test.ts"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
