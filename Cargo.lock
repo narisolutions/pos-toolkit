@@ -3302,6 +3302,7 @@ dependencies = [
  "log",
  "rusb",
  "serde",
+ "serde_json",
  "specta",
  "tauri",
  "tauri-plugin",
