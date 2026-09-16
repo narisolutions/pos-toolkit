@@ -10,6 +10,7 @@
 
 pub mod keyboard;
 pub mod printing;
+pub mod scale;
 pub mod serial;
 pub mod usb;
 pub mod winprint;
@@ -18,7 +19,7 @@ use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{Manager, Runtime};
 
 mod commands {
-    use crate::{keyboard, printing, serial, usb, winprint};
+    use crate::{keyboard, printing, serial, usb, winprint, scale};
     use tauri::{AppHandle, Runtime, State};
 
     #[tauri::command]
@@ -81,6 +82,29 @@ mod commands {
         serial::open_scanner(app, &state, path, baud, idle_ms)
     }
 
+    /* ------------------------------------------------ HID POS scales */
+
+    #[tauri::command]
+    pub fn list_hid_scales() -> Result<Vec<scale::HidScaleInfo>, String> {
+        scale::list_hid_scales()
+    }
+
+    /// Attach a reader to `path`; readings arrive on `pos-hardware://scale-reading`.
+    #[tauri::command]
+    pub fn open_scale<R: Runtime>(
+        app: AppHandle<R>,
+        state: State<'_, scale::ScaleState>,
+        path: String,
+        heartbeat_ms: u64,
+    ) -> Result<(), String> {
+        scale::open_scale(app, &state, path, heartbeat_ms)
+    }
+
+    #[tauri::command]
+    pub fn close_scale(state: State<'_, scale::ScaleState>, path: String) -> Result<(), String> {
+        scale::close_scale(&state, &path)
+    }
+
     #[tauri::command]
     pub fn close_serial_scanner(
         state: State<'_, serial::SerialState>,
@@ -110,11 +134,15 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::open_serial_scanner,
             commands::close_serial_scanner,
             commands::open_serial_scanners,
+            commands::list_hid_scales,
+            commands::open_scale,
+            commands::close_scale,
         ])
         // Readers are per-port and long-lived, so the plugin owns the registry
         // rather than each caller keeping its own and racing for the port.
         .setup(|app, _api| {
             app.manage(serial::SerialState::default());
+            app.manage(scale::ScaleState::default());
             Ok(())
         })
         .build()

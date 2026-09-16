@@ -29,6 +29,10 @@ rusb = "0.9"
 # the same for our purposes and it keeps the build from needing a system dev
 # package on every machine that compiles this workspace.
 serialport = { version = "4", default-features = false }
+# USB HID POS Scales (usage page 0x8D). No system library at build time on
+# Linux either: `linux-native-basic-udev` reads hidraw through a pure-Rust udev
+# walk, the same reason serialport above drops libudev.
+hidapi = { version = "2.6", default-features = false, features = ["linux-native-basic-udev", "windows-native", "macos-shared-device"] }
 
 [dev-dependencies]
 serde_json = "1"

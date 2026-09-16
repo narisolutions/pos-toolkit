@@ -1,6 +1,6 @@
 ## Default Permission
 
-All pos-hardware commands: printing, drawer, device enumeration, keyboard, serial peripherals.
+All pos-hardware commands: printing, drawer, device enumeration, keyboard, serial peripherals, HID POS scales.
 
 #### This default permission set includes the following:
 
@@ -15,6 +15,9 @@ All pos-hardware commands: printing, drawer, device enumeration, keyboard, seria
 - `allow-open-serial-scanner`
 - `allow-close-serial-scanner`
 - `allow-open-serial-scanners`
+- `allow-list-hid-scales`
+- `allow-open-scale`
+- `allow-close-scale`
 
 ## Permission Table
 
@@ -54,6 +57,32 @@ Denies the check_physical_keyboard command without any pre-configured scope.
 <tr>
 <td>
 
+`pos-hardware:allow-close-scale`
+
+</td>
+<td>
+
+Enables the close_scale command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`pos-hardware:deny-close-scale`
+
+</td>
+<td>
+
+Denies the close_scale command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `pos-hardware:allow-close-serial-scanner`
 
 </td>
@@ -73,6 +102,32 @@ Enables the close_serial_scanner command without any pre-configured scope.
 <td>
 
 Denies the close_serial_scanner command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`pos-hardware:allow-list-hid-scales`
+
+</td>
+<td>
+
+Enables the list_hid_scales command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`pos-hardware:deny-list-hid-scales`
+
+</td>
+<td>
+
+Denies the list_hid_scales command without any pre-configured scope.
 
 </td>
 </tr>
@@ -177,6 +232,32 @@ Enables the open_cash_drawer command without any pre-configured scope.
 <td>
 
 Denies the open_cash_drawer command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`pos-hardware:allow-open-scale`
+
+</td>
+<td>
+
+Enables the open_scale command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`pos-hardware:deny-open-scale`
+
+</td>
+<td>
+
+Denies the open_scale command without any pre-configured scope.
 
 </td>
 </tr>

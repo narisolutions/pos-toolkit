@@ -15,6 +15,9 @@ const COMMANDS: &[&str] = &[
     "open_serial_scanner",
     "close_serial_scanner",
     "open_serial_scanners",
+    "list_hid_scales",
+    "open_scale",
+    "close_scale",
 ];
 
 fn main() {

@@ -307,6 +307,18 @@
           "markdownDescription": "Denies the check_physical_keyboard command without any pre-configured scope."
         },
         {
+          "description": "Enables the close_scale command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-close-scale",
+          "markdownDescription": "Enables the close_scale command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the close_scale command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-close-scale",
+          "markdownDescription": "Denies the close_scale command without any pre-configured scope."
+        },
+        {
           "description": "Enables the close_serial_scanner command without any pre-configured scope.",
           "type": "string",
           "const": "allow-close-serial-scanner",
@@ -317,6 +329,18 @@
           "type": "string",
           "const": "deny-close-serial-scanner",
           "markdownDescription": "Denies the close_serial_scanner command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_hid_scales command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-hid-scales",
+          "markdownDescription": "Enables the list_hid_scales command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_hid_scales command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-hid-scales",
+          "markdownDescription": "Denies the list_hid_scales command without any pre-configured scope."
         },
         {
           "description": "Enables the list_serial_ports command without any pre-configured scope.",
@@ -365,6 +389,18 @@
           "type": "string",
           "const": "deny-open-cash-drawer",
           "markdownDescription": "Denies the open_cash_drawer command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_scale command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-scale",
+          "markdownDescription": "Enables the open_scale command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_scale command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-scale",
+          "markdownDescription": "Denies the open_scale command without any pre-configured scope."
         },
         {
           "description": "Enables the open_serial_scanner command without any pre-configured scope.",
@@ -427,10 +463,10 @@
           "markdownDescription": "Denies the toggle_virtual_keyboard command without any pre-configured scope."
         },
         {
-          "description": "All pos-hardware commands: printing, drawer, device enumeration, keyboard, serial peripherals.\n#### This default permission set includes:\n\n- `allow-print-job`\n- `allow-open-cash-drawer`\n- `allow-query-printer`\n- `allow-list-usb-devices`\n- `allow-list-system-printers`\n- `allow-check-physical-keyboard`\n- `allow-toggle-virtual-keyboard`\n- `allow-list-serial-ports`\n- `allow-open-serial-scanner`\n- `allow-close-serial-scanner`\n- `allow-open-serial-scanners`",
+          "description": "All pos-hardware commands: printing, drawer, device enumeration, keyboard, serial peripherals, HID POS scales.\n#### This default permission set includes:\n\n- `allow-print-job`\n- `allow-open-cash-drawer`\n- `allow-query-printer`\n- `allow-list-usb-devices`\n- `allow-list-system-printers`\n- `allow-check-physical-keyboard`\n- `allow-toggle-virtual-keyboard`\n- `allow-list-serial-ports`\n- `allow-open-serial-scanner`\n- `allow-close-serial-scanner`\n- `allow-open-serial-scanners`\n- `allow-list-hid-scales`\n- `allow-open-scale`\n- `allow-close-scale`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "All pos-hardware commands: printing, drawer, device enumeration, keyboard, serial peripherals.\n#### This default permission set includes:\n\n- `allow-print-job`\n- `allow-open-cash-drawer`\n- `allow-query-printer`\n- `allow-list-usb-devices`\n- `allow-list-system-printers`\n- `allow-check-physical-keyboard`\n- `allow-toggle-virtual-keyboard`\n- `allow-list-serial-ports`\n- `allow-open-serial-scanner`\n- `allow-close-serial-scanner`\n- `allow-open-serial-scanners`"
+          "markdownDescription": "All pos-hardware commands: printing, drawer, device enumeration, keyboard, serial peripherals, HID POS scales.\n#### This default permission set includes:\n\n- `allow-print-job`\n- `allow-open-cash-drawer`\n- `allow-query-printer`\n- `allow-list-usb-devices`\n- `allow-list-system-printers`\n- `allow-check-physical-keyboard`\n- `allow-toggle-virtual-keyboard`\n- `allow-list-serial-ports`\n- `allow-open-serial-scanner`\n- `allow-close-serial-scanner`\n- `allow-open-serial-scanners`\n- `allow-list-hid-scales`\n- `allow-open-scale`\n- `allow-close-scale`"
         }
       ]
     }

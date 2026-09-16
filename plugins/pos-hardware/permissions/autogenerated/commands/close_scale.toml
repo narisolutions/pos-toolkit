@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-close-scale"
+description = "Enables the close_scale command without any pre-configured scope."
+commands.allow = ["close_scale"]
+
+[[permission]]
+identifier = "deny-close-scale"
+description = "Denies the close_scale command without any pre-configured scope."
+commands.deny = ["close_scale"]
