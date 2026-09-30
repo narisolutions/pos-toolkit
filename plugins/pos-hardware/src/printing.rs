@@ -5,6 +5,7 @@
 //! The API is deliberately dumb: a target address and a list of ops. Receipt
 //! layout, logos, and templating belong to the host application.
 
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::Duration;
 
 use escpos::driver::{Driver, NetworkDriver, UsbDriver};
@@ -148,7 +149,8 @@ pub fn query(target: &PrinterTarget, payload: &[u8], timeout_ms: u64) -> Result<
 
     let read = match target {
         PrinterTarget::Network { host, port } => {
-            let driver = map_err(NetworkDriver::open(host, *port, timeout))?;
+            let addr = resolve(host, *port)?;
+            let driver = map_err(NetworkDriver::open(&addr.ip().to_string(), *port, timeout))?;
             exchange(driver, payload, &mut buf)
         }
         PrinterTarget::Usb { vendor_id, product_id } => {
@@ -197,10 +199,8 @@ pub fn open_cash_drawer(target: &PrinterTarget) -> Result<(), String> {
     match target {
         PrinterTarget::Network { host, port } => {
             use std::io::Write;
-            use std::net::{SocketAddr, TcpStream};
-            let addr: SocketAddr = format!("{host}:{port}")
-                .parse()
-                .map_err(|e: std::net::AddrParseError| e.to_string())?;
+            use std::net::TcpStream;
+            let addr = resolve(host, *port)?;
             let mut stream =
                 TcpStream::connect_timeout(&addr, Duration::from_secs(3)).map_err(|e| e.to_string())?;
             // ESC p 0 25 255 — drawer kick pulse on pin 2
@@ -317,8 +317,24 @@ fn buffer_printer() -> (Printer<BufferDriver>, SharedBuffer) {
     (printer, buf)
 }
 
+/// escpos only accepts an IP literal once a timeout is set, so names like
+/// `printer.local` are resolved here. IPv4 first: printer stacks rarely listen on v6.
+fn resolve(host: &str, port: u16) -> Result<SocketAddr, String> {
+    let addrs: Vec<SocketAddr> = (host, port)
+        .to_socket_addrs()
+        .map_err(|e| format!("cannot resolve {host}: {e}"))?
+        .collect();
+    addrs
+        .iter()
+        .find(|a| a.is_ipv4())
+        .or_else(|| addrs.first())
+        .copied()
+        .ok_or_else(|| format!("{host} resolved to no address"))
+}
+
 fn network_printer(host: &str, port: u16) -> Result<Printer<NetworkDriver>, PrinterError> {
-    let driver = NetworkDriver::open(host, port, Some(Duration::from_secs(5)))?;
+    let addr = resolve(host, port).map_err(PrinterError::Io)?;
+    let driver = NetworkDriver::open(&addr.ip().to_string(), port, Some(Duration::from_secs(5)))?;
     Ok(Printer::new(driver, Protocol::default(), Some(PrinterOptions::default())))
 }
 
@@ -335,4 +351,20 @@ fn map_err<T>(result: Result<T, PrinterError>) -> Result<T, String> {
         log::error!("Printer error: {s}");
         s
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve;
+
+    #[test]
+    fn resolves_ip_literals_and_hostnames() {
+        assert_eq!(resolve("192.168.1.50", 9100).unwrap().to_string(), "192.168.1.50:9100");
+        assert!(resolve("localhost", 9100).unwrap().ip().is_loopback());
+    }
+
+    #[test]
+    fn reports_unresolvable_names() {
+        assert!(resolve("no-such-printer.invalid", 9100).is_err());
+    }
 }
