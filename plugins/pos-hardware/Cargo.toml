@@ -29,9 +29,17 @@ rusb = "0.9"
 # the same for our purposes and it keeps the build from needing a system dev
 # package on every machine that compiles this workspace.
 serialport = { version = "4", default-features = false }
+
 # USB HID POS Scales (usage page 0x8D). No system library at build time on
 # Linux either: `linux-native-basic-udev` reads hidraw through a pure-Rust udev
 # walk, the same reason serialport above drops libudev.
+#
+# Desktop only: hidapi has no Android or iOS backend at all — its lib.rs is a
+# `compile_error!("No backend selected")` there — and a phone has no HID scale
+# on its counter. `scale` keeps its types and its parser everywhere and answers
+# the two device calls with an error on mobile (2026-10-05, the first Android
+# build of a host).
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 hidapi = { version = "2.6", default-features = false, features = ["linux-native-basic-udev", "windows-native", "macos-shared-device"] }
 
 [dev-dependencies]

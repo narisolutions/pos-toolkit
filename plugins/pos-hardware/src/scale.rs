@@ -37,14 +37,21 @@
 //!   fixes it. The kernel's generic HID driver owns the device and hidraw
 //!   reads beside it — nothing is detached and no other driver is displaced.
 //! - **Windows / macOS:** the native HID stacks, no driver install.
+//! - **Android / iOS:** no HID backend exists (hidapi does not build there),
+//!   and no phone has a scale on its counter. The types and [`parse_report`]
+//!   compile everywhere so a host's bindings stay one shape; the device calls
+//!   answer [`NOT_ON_THIS_PLATFORM`] instead.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, Runtime};
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+use tauri::Emitter;
+use tauri::{AppHandle, Runtime};
 
 #[cfg(feature = "specta")]
 use specta::Type;
@@ -57,6 +64,14 @@ pub const READING_EVENT: &str = "pos-hardware://scale-reading";
 
 /// The event a reader emits when it stops on an error rather than on request.
 pub const ERROR_EVENT: &str = "pos-hardware://scale-error";
+
+/// What the device calls answer where no HID stack exists (Android, iOS).
+pub const NOT_ON_THIS_PLATFORM: &str = "USB HID scales are not reachable on this platform; pair the scale to the counter terminal";
+
+/// The platforms with a HID stack hidapi can build against.
+macro_rules! desktop_only {
+    ($($item:item)*) => { $(#[cfg(not(any(target_os = "android", target_os = "ios")))] $item)* };
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(Type))]
@@ -115,6 +130,18 @@ pub struct ScaleState(Mutex<HashMap<String, Arc<AtomicBool>>>);
 /// usage page, for the same reason the serial list returns every port: a
 /// scale from a vendor no table has heard of must still be pickable, and a
 /// human choosing from a list beats a table being wrong the first time.
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub fn list_hid_scales() -> Result<Vec<HidScaleInfo>, String> {
+    Err(NOT_ON_THIS_PLATFORM.to_string())
+}
+
+/// Attach a reader — see the desktop body below; here there is no HID stack.
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub fn open_scale<R: Runtime>(_app: AppHandle<R>, _state: &ScaleState, _path: String, _heartbeat_ms: u64) -> Result<(), String> {
+    Err(NOT_ON_THIS_PLATFORM.to_string())
+}
+
+desktop_only! {
 pub fn list_hid_scales() -> Result<Vec<HidScaleInfo>, String> {
     let api = hidapi::HidApi::new().map_err(|e| format!("could not open the HID subsystem: {e}"))?;
     let mut out: Vec<HidScaleInfo> = api
@@ -135,7 +162,9 @@ pub fn list_hid_scales() -> Result<Vec<HidScaleInfo>, String> {
     out.dedup_by(|a, b| a.path == b.path);
     Ok(out)
 }
+}
 
+desktop_only! {
 /// The sentence that fixes the commonest failure, instead of the error alone.
 pub fn open_error_hint(path: &str, err: &hidapi::HidError) -> String {
     let base = format!("could not open {path}: {err}");
@@ -148,6 +177,7 @@ pub fn open_error_hint(path: &str, err: &hidapi::HidError) -> String {
         );
     }
     base
+}
 }
 
 fn status_name(code: u8) -> &'static str {
@@ -212,6 +242,7 @@ pub fn parse_report(path: &str, raw: &[u8]) -> Option<ScaleReading> {
     Some(ScaleReading { path: path.to_string(), status: status.to_string(), unit: unit.to_string(), value_milli, raw: raw.to_vec() })
 }
 
+desktop_only! {
 /// Attach a reader; readings arrive on [`READING_EVENT`] whenever the scale's
 /// report changes, and at least every `heartbeat_ms` while it does not — a
 /// host drawing a live number must be able to tell "still 0.352 kg" from "the
@@ -269,6 +300,7 @@ fn read_loop<R: Runtime>(app: AppHandle<R>, device: hidapi::HidDevice, path: Str
             }
         }
     }
+}
 }
 
 pub fn close_scale(state: &ScaleState, path: &str) -> Result<(), String> {

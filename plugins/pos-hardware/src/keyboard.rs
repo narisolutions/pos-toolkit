@@ -193,3 +193,18 @@ pub fn has_physical_keyboard() -> bool {
 pub fn toggle_virtual_keyboard() {
     log::info!("macOS virtual keyboard not yet implemented");
 }
+
+// ─── Android / iOS ─────────────────────────────────────────────────────────────
+// A phone or tablet has no physical keyboard to detect and owns its own
+// on-screen one: the OS raises it for any focused field and the app has no
+// say. `false` here is what makes a host show its numpads, which is the
+// right answer on a touch device (2026-10-05, the first Android build).
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub fn has_physical_keyboard() -> bool {
+    false
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub fn toggle_virtual_keyboard() {
+    log::debug!("the OS owns the on-screen keyboard on this platform; nothing to toggle");
+}
