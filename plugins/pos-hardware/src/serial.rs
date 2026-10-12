@@ -60,15 +60,22 @@
 //!   why a device Linux refuses may work there.
 //! - **macOS:** `/dev/cu.usbmodem*`. Prefer `cu.` over `tty.` — the latter
 //!   blocks on carrier detect.
+//! - **iOS:** no serial port exists and `serialport` is not linked. The types
+//!   and the framing compile everywhere so a host's bindings stay one shape;
+//!   the port calls answer [`NOT_ON_THIS_PLATFORM`] instead.
 
 use std::collections::HashMap;
+#[cfg(not(target_os = "ios"))]
 use std::io::ErrorKind;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+#[cfg(not(target_os = "ios"))]
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, Runtime};
+#[cfg(not(target_os = "ios"))]
+use tauri::Emitter;
+use tauri::{AppHandle, Runtime};
 
 #[cfg(feature = "specta")]
 use specta::Type;
@@ -84,6 +91,14 @@ pub const SCAN_EVENT: &str = "pos-hardware://serial-scan";
 
 /// The event a reader emits when it stops on an error rather than on request.
 pub const ERROR_EVENT: &str = "pos-hardware://serial-error";
+
+/// What the port calls answer where no serial port exists (iOS).
+pub const NOT_ON_THIS_PLATFORM: &str = "Serial ports are not reachable on this platform; connect the scanner to the counter terminal";
+
+/// The platforms `serialport` is linked on.
+macro_rules! not_ios {
+    ($($item:item)*) => { $(#[cfg(not(target_os = "ios"))] $item)* };
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(Type))]
@@ -139,6 +154,19 @@ pub struct SerialError {
 #[derive(Default)]
 pub struct SerialState(Mutex<HashMap<String, Arc<AtomicBool>>>);
 
+/// Ports the system knows about — see the body below; here there are none to ask for.
+#[cfg(target_os = "ios")]
+pub fn list_serial_ports() -> Result<Vec<SerialPortInfo>, String> {
+    Err(NOT_ON_THIS_PLATFORM.to_string())
+}
+
+/// Attach a reader — see the body below; here there is no port to open.
+#[cfg(target_os = "ios")]
+pub fn open_scanner<R: Runtime>(_app: AppHandle<R>, _state: &SerialState, _path: String, _baud: u32, _idle_ms: u64) -> Result<(), String> {
+    Err(NOT_ON_THIS_PLATFORM.to_string())
+}
+
+not_ios! {
 /// Ports the system knows about.
 ///
 /// Every serial port is returned, not just plausible scanners: a POS may also
@@ -248,8 +276,11 @@ pub fn open_error_hint(path: &str, err: &serialport::Error) -> String {
         _ => base,
     }
 }
+}
 
 /// Where a message ended.
+// Only the reader calls it, and iOS has no reader.
+#[cfg_attr(target_os = "ios", allow(dead_code))]
 fn frame(buffer: &mut Vec<u8>, byte: u8, last_was_cr: bool) -> Option<&'static str> {
     match byte {
         b'\r' => Some("cr"),
@@ -264,6 +295,7 @@ fn frame(buffer: &mut Vec<u8>, byte: u8, last_was_cr: bool) -> Option<&'static s
     }
 }
 
+not_ios! {
 /// Start reading `path`, emitting one [`SerialScan`] per framed message.
 ///
 /// Idempotent per port: opening a port that is already open is a no-op rather
@@ -450,6 +482,8 @@ fn read_loop<R: Runtime>(
             }
         }
     }
+}
+
 }
 
 /// Stop reading `path`. Unknown ports are not an error — closing twice is fine.
