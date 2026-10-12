@@ -8,7 +8,9 @@
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::Duration;
 
-use escpos::driver::{Driver, NetworkDriver, UsbDriver};
+#[cfg(not(target_os = "ios"))]
+use escpos::driver::UsbDriver;
+use escpos::driver::{Driver, NetworkDriver};
 use escpos::errors::PrinterError;
 use escpos::printer::Printer;
 use escpos::printer_options::PrinterOptions;
@@ -18,6 +20,8 @@ use escpos::utils::{
 };
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_os = "ios")]
+use crate::usb;
 use crate::winprint;
 
 /// Where the bytes go.
@@ -28,7 +32,7 @@ pub enum PrinterTarget {
     /// Raw TCP, default port 9100.
     #[serde(rename_all = "camelCase")]
     Network { host: String, #[serde(default = "default_port")] port: u16 },
-    /// Direct USB via libusb.
+    /// Direct USB via libusb. Refused on iOS, where libusb has no backend.
     #[serde(rename_all = "camelCase")]
     Usb { vendor_id: u16, product_id: u16 },
     /// A printer known to the OS spooler (Windows; raw bytes).
@@ -153,10 +157,13 @@ pub fn query(target: &PrinterTarget, payload: &[u8], timeout_ms: u64) -> Result<
             let driver = map_err(NetworkDriver::open(&addr.ip().to_string(), *port, timeout))?;
             exchange(driver, payload, &mut buf)
         }
+        #[cfg(not(target_os = "ios"))]
         PrinterTarget::Usb { vendor_id, product_id } => {
             let driver = map_err(UsbDriver::open(*vendor_id, *product_id, timeout, None))?;
             exchange(driver, payload, &mut buf)
         }
+        #[cfg(target_os = "ios")]
+        PrinterTarget::Usb { .. } => return Err(usb::NOT_ON_THIS_PLATFORM.into()),
         // The spooler takes a job and reports on the job, never on the head.
         PrinterTarget::System { .. } => {
             return Err("this printer is reached through the OS spooler, which cannot carry a reply".into())
@@ -180,10 +187,13 @@ pub fn print_job(target: &PrinterTarget, ops: &[PrintOp]) -> Result<(), String> 
             let mut printer = map_err(network_printer(host, *port))?;
             run_ops(&mut printer, ops)
         }
+        #[cfg(not(target_os = "ios"))]
         PrinterTarget::Usb { vendor_id, product_id } => {
             let mut printer = map_err(usb_printer(*vendor_id, *product_id))?;
             run_ops(&mut printer, ops)
         }
+        #[cfg(target_os = "ios")]
+        PrinterTarget::Usb { .. } => Err(usb::NOT_ON_THIS_PLATFORM.into()),
         PrinterTarget::System { name } => {
             let (mut printer, buffer) = buffer_printer();
             run_ops(&mut printer, ops)?;
@@ -207,12 +217,15 @@ pub fn open_cash_drawer(target: &PrinterTarget) -> Result<(), String> {
             stream.write_all(&[0x1B, 0x70, 0x00, 0x19, 0xFF]).map_err(|e| e.to_string())?;
             Ok(())
         }
+        #[cfg(not(target_os = "ios"))]
         PrinterTarget::Usb { vendor_id, product_id } => {
             let mut printer = map_err(usb_printer(*vendor_id, *product_id))?;
             map_err(printer.init())?;
             map_err(printer.cash_drawer(CashDrawer::Pin2))?;
             Ok(())
         }
+        #[cfg(target_os = "ios")]
+        PrinterTarget::Usb { .. } => Err(usb::NOT_ON_THIS_PLATFORM.into()),
         PrinterTarget::System { name } => {
             let (mut printer, buffer) = buffer_printer();
             map_err(printer.init())?;
@@ -338,6 +351,7 @@ fn network_printer(host: &str, port: u16) -> Result<Printer<NetworkDriver>, Prin
     Ok(Printer::new(driver, Protocol::default(), Some(PrinterOptions::default())))
 }
 
+#[cfg(not(target_os = "ios"))]
 fn usb_printer(vendor_id: u16, product_id: u16) -> Result<Printer<UsbDriver>, PrinterError> {
     log::info!("USB print path: libusb via escpos::UsbDriver (rusb), VID {vendor_id:04x} PID {product_id:04x}");
     UsbDriver::open(vendor_id, product_id, Some(Duration::from_secs(8)), None)

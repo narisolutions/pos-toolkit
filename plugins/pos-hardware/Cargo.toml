@@ -21,18 +21,13 @@ specta = { version = "=2.0.0-rc.25", optional = true, features = ["derive"] }
 log = "0.4"
 # `usb` uses rusb/libusb and scans all interfaces for bulk IN+OUT — fixes Windows
 # "no suitable interface number found" from `native_usb` (nusb) when `interfaces()`
-# is empty. (Carried over from medusa-pos.)
-escpos = { version = "0.19.0", features = ["graphics", "usb"] }
-rusb = "0.9"
-# Virtual COM peripherals (scanners today). `default-features = false` drops the
-# libudev link on Linux and enumerates through sysfs instead: the metadata is
-# the same for our purposes and it keeps the build from needing a system dev
-# package on every machine that compiles this workspace.
-serialport = { version = "4", default-features = false }
+# is empty. (Carried over from medusa-pos.) The `usb` feature and rusb itself
+# are in the target table below: everywhere but iOS.
+escpos = { version = "0.19.0", features = ["graphics"] }
 
 # USB HID POS Scales (usage page 0x8D). No system library at build time on
 # Linux either: `linux-native-basic-udev` reads hidraw through a pure-Rust udev
-# walk, the same reason serialport above drops libudev.
+# walk, the same reason serialport below drops libudev.
 #
 # Desktop only: hidapi has no Android or iOS backend at all — its lib.rs is a
 # `compile_error!("No backend selected")` there — and a phone has no HID scale
@@ -41,6 +36,26 @@ serialport = { version = "4", default-features = false }
 # build of a host).
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 hidapi = { version = "2.6", default-features = false, features = ["linux-native-basic-udev", "windows-native", "macos-shared-device"] }
+
+# Everywhere but iOS: libusb has no iOS backend. libusb1-sys compiles the
+# library's core there and no OS half, so every crate builds and the host's
+# final link then fails on `_usbi_backend` (2026-10-11, the first iOS build of
+# a host). Android is Linux usbfs and links. `usb` and `printing` keep their
+# types everywhere and answer the USB calls with an error on iOS.
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+escpos = { version = "0.19.0", features = ["usb"] }
+rusb = "0.9"
+# Virtual COM peripherals (scanners today). `default-features = false` drops the
+# libudev link on Linux and enumerates through sysfs instead: the metadata is
+# the same for our purposes and it keeps the build from needing a system dev
+# package on every machine that compiles this workspace.
+#
+# Not on iOS either: its port enumeration is IOKit, which rustc links by itself
+# and an Xcode link of the host's static library does not — `_IOServiceMatching`
+# and nine more undefined (2026-10-11) — and an iPhone has no serial port to
+# find. `serial` keeps its types and its framing everywhere and answers the
+# port calls with an error there.
+serialport = { version = "4", default-features = false }
 
 [dev-dependencies]
 serde_json = "1"

@@ -1,4 +1,8 @@
 //! USB printer enumeration (extracted from medusa-pos).
+//!
+//! - **iOS:** libusb has no backend there, so nothing USB is linked. The type
+//!   compiles everywhere so a host's bindings stay one shape; the calls answer
+//!   [`NOT_ON_THIS_PLATFORM`] instead.
 
 use serde::Serialize;
 
@@ -11,8 +15,18 @@ pub struct UsbDeviceInfo {
     pub description: String,
 }
 
+/// What the USB calls answer where libusb has no backend (iOS).
+pub const NOT_ON_THIS_PLATFORM: &str = "USB printers are not reachable on this platform; use a network printer or print through the counter terminal";
+
+/// Devices that look like printers — see the body below; here there is no libusb.
+#[cfg(target_os = "ios")]
+pub fn list_usb_devices() -> Result<Vec<UsbDeviceInfo>, String> {
+    Err(NOT_ON_THIS_PLATFORM.to_string())
+}
+
 /// Devices that look like printers: USB class 7, or composite devices with a
 /// printer interface.
+#[cfg(not(target_os = "ios"))]
 pub fn list_usb_devices() -> Result<Vec<UsbDeviceInfo>, String> {
     let devices = rusb::devices().map_err(|e| format!("Failed to enumerate USB devices: {e}"))?;
     let mut result = Vec::new();
