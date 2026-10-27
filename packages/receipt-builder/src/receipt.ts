@@ -183,8 +183,14 @@ export function buildReceiptText(doc: ReceiptDoc, opts: BuildOptions): string {
     }
   }
 
+  // Wrapped like the footer: a message can carry a reference longer than
+  // the paper (a VAT exemption's project name), and an unwrapped line runs
+  // off the roll.
   for (const message of doc.messages ?? []) {
-    lines.push("", centerText(clean(message), lineWidth));
+    lines.push("");
+    for (const wrapped of wrapText(clean(message), lineWidth)) {
+      lines.push(centerText(wrapped, lineWidth));
+    }
   }
 
   if (doc.footerLines?.length) {

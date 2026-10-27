@@ -115,6 +115,16 @@ describe("buildReceiptText", () => {
     expect(text).toContain(centerText("** UNPAID **", 48));
   });
 
+  it("wraps a message longer than the paper", () => {
+    const message = "VAT exempt: Curriculum Reform to Promote Education for Peace in Ukraine, Georgia and Moldova";
+    const text = buildReceiptText(
+      { headerLines: [], items: [], totalRows: [], messages: [message] },
+      { formatAmount: tetri }
+    );
+    expect(text.split("\n").every((line) => line.length <= 48)).toBe(true);
+    expect(text).toContain("Moldova");
+  });
+
   it("passes Georgian through on utf8 and strips it on ascii", () => {
     const georgian: ReceiptDoc = {
       headerLines: ["ჩვენი დუქანი"],
