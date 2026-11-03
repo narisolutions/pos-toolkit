@@ -26,9 +26,17 @@ pub fn list_usb_devices() -> Result<Vec<UsbDeviceInfo>, String> {
 
 /// Devices that look like printers: USB class 7, or composite devices with a
 /// printer interface.
+///
+/// ⚠ An own `Context`, never `rusb::devices()`: that one's `GlobalContext`
+/// *panics* when `libusb_init` fails, which an Android app without root always
+/// does, and a panic in a synchronous command aborts the whole host (2026-11-03,
+/// the first Android master's printer step). escpos's `UsbDriver` already
+/// opens its own `Context` and answers an error.
 #[cfg(not(target_os = "ios"))]
 pub fn list_usb_devices() -> Result<Vec<UsbDeviceInfo>, String> {
-    let devices = rusb::devices().map_err(|e| format!("Failed to enumerate USB devices: {e}"))?;
+    use rusb::UsbContext;
+    let context = rusb::Context::new().map_err(|e| format!("USB is not reachable here: {e}"))?;
+    let devices = context.devices().map_err(|e| format!("Failed to enumerate USB devices: {e}"))?;
     let mut result = Vec::new();
 
     for device in devices.iter() {
