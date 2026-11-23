@@ -181,6 +181,52 @@ pub fn query(target: &PrinterTarget, payload: &[u8], timeout_ms: u64) -> Result<
     }
 }
 
+/// How much of a raw job goes down the wire in one write. Each write gets its
+/// own timeout, so a printer that stops taking bytes while its head catches up
+/// (a long label job fills its buffer) is waited for, while one that never
+/// takes the next chunk is reported.
+const RAW_CHUNK: usize = 16 * 1024;
+
+/// How long one chunk may wait for the printer to take it.
+const RAW_WRITE_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Send bytes to a printer as they are: no ESC/POS reset first, nothing read
+/// back, and every failure — opening, or any write after the opening —
+/// returned as an error.
+///
+/// For printers that speak something other than ESC/POS (a label printer's
+/// TSPL or ZPL), where `print_job`'s `ESC @` would be noise at best, and where
+/// `query` is the wrong tool: it reports a failed write as an empty answer,
+/// so a job that never reached the printer would read as printed.
+///
+/// The spooler takes the bytes unchanged too (`winprint::raw_print`), so a
+/// label printer installed in Windows with its maker's driver is reachable
+/// here as well.
+pub fn send_raw(target: &PrinterTarget, bytes: &[u8]) -> Result<(), String> {
+    fn write_chunks<D: Driver>(driver: D, bytes: &[u8]) -> Result<(), PrinterError> {
+        for chunk in bytes.chunks(RAW_CHUNK) {
+            driver.write(chunk)?;
+        }
+        driver.flush()
+    }
+
+    match target {
+        PrinterTarget::Network { host, port } => {
+            let addr = resolve(host, *port)?;
+            let driver = map_err(NetworkDriver::open(&addr.ip().to_string(), *port, Some(RAW_WRITE_TIMEOUT)))?;
+            map_err(write_chunks(driver, bytes))
+        }
+        #[cfg(not(target_os = "ios"))]
+        PrinterTarget::Usb { vendor_id, product_id } => {
+            let driver = map_err(UsbDriver::open(*vendor_id, *product_id, Some(RAW_WRITE_TIMEOUT), None))?;
+            map_err(write_chunks(driver, bytes))
+        }
+        #[cfg(target_os = "ios")]
+        PrinterTarget::Usb { .. } => Err(usb::NOT_ON_THIS_PLATFORM.into()),
+        PrinterTarget::System { name } => winprint::raw_print(name, bytes),
+    }
+}
+
 pub fn print_job(target: &PrinterTarget, ops: &[PrintOp]) -> Result<(), String> {
     match target {
         PrinterTarget::Network { host, port } => {
@@ -369,7 +415,9 @@ fn map_err<T>(result: Result<T, PrinterError>) -> Result<T, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::resolve;
+    use super::{resolve, send_raw, PrinterTarget};
+    use std::io::Read;
+    use std::net::TcpListener;
 
     #[test]
     fn resolves_ip_literals_and_hostnames() {
@@ -380,5 +428,48 @@ mod tests {
     #[test]
     fn reports_unresolvable_names() {
         assert!(resolve("no-such-printer.invalid", 9100).is_err());
+    }
+
+    fn local(listener: &TcpListener) -> PrinterTarget {
+        PrinterTarget::Network { host: "127.0.0.1".into(), port: listener.local_addr().unwrap().port() }
+    }
+
+    #[test]
+    fn send_raw_delivers_every_byte_unchanged() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let target = local(&listener);
+        // Larger than a chunk, and no ESC @ in front of it.
+        let job: Vec<u8> = (0..100_000u32).map(|i| (i % 251) as u8).collect();
+        let reader = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut got = Vec::new();
+            stream.read_to_end(&mut got).unwrap();
+            got
+        });
+        send_raw(&target, &job).unwrap();
+        assert_eq!(reader.join().unwrap(), job);
+    }
+
+    #[test]
+    fn send_raw_reports_a_printer_that_is_not_there() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let target = local(&listener);
+        drop(listener);
+        assert!(send_raw(&target, b"SIZE 100 mm,150 mm\r\n").is_err());
+    }
+
+    #[test]
+    fn send_raw_reports_a_printer_that_goes_away_mid_job() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let target = local(&listener);
+        let closer = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut first = [0u8; 16];
+            stream.read_exact(&mut first).unwrap();
+            // Gone with bytes unread: the next writes meet a reset.
+        });
+        let job = vec![0u8; 8 * 1024 * 1024];
+        assert!(send_raw(&target, &job).is_err());
+        closer.join().unwrap();
     }
 }
