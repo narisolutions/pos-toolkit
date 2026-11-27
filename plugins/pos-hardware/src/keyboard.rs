@@ -48,8 +48,12 @@ pub fn has_physical_keyboard() -> bool {
                         &mut name_len,
                     );
 
-                    if chars > 0 {
-                        let name = String::from_utf16_lossy(&name_buf[..chars as usize]);
+                    // u32::MAX is the call's failure value (an RDP session's
+                    // keyboard answers with it), not a length: slicing by it
+                    // panicked inside the window callback and aborted the app.
+                    if chars > 0 && chars != u32::MAX {
+                        let len = (chars as usize).min(name_buf.len());
+                        let name = String::from_utf16_lossy(&name_buf[..len]);
                         let upper = name.to_uppercase();
                         // Skip virtual keyboards (RDP, Hyper-V, Terminal Services)
                         if upper.contains("RDP")
