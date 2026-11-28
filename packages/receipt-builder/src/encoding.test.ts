@@ -20,6 +20,18 @@ describe("sanitizePrinterString", () => {
   });
 });
 
+describe("dashes", () => {
+  it("keeps a minus or a dash as a hyphen on every head that cannot draw it", () => {
+    expect(sanitizePrinterString("Scone \u221220%", "ascii")).toBe("Scone -20%");
+    expect(sanitizePrinterString("10\u201312 \u2014 open", "ascii")).toBe("10-12 - open");
+    expect(sanitizePrinterString("\u10E1\u10E5\u10DD\u10DC\u10D8 \u221220%", "translit")).toBe("skoni -20%");
+    expect(sanitizePrinterString("Cena \u221220%", "cp852")).toBe("Cena -20%");
+  });
+  it("leaves them alone on a head that draws them", () => {
+    expect(sanitizePrinterString("Scone \u221220%", "utf8")).toBe("Scone \u221220%");
+  });
+});
+
 describe("translit", () => {
   /**
    * Georgian is a published standard (2002 national transliteration) and the

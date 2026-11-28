@@ -209,6 +209,9 @@ function romanize(text: string): string {
   return /[^\x00-\x7F]/.test(tabled) ? injectedRomanizer(tabled) : tabled;
 }
 
+/** Hyphen, non-breaking hyphen, figure dash, en and em dash, horizontal bar, minus. */
+const DASHES = /[\u2010-\u2015\u2212]/g;
+
 export function sanitizePrinterString(
   text: string,
   encoding: PrinterEncoding = "ascii",
@@ -219,6 +222,11 @@ export function sanitizePrinterString(
   if (encoding === "utf8") {
     return text.replace(ESCPOS_CONTROL_BYTES, "").replace(/\s+/g, " ").trim();
   }
+
+  // Every dash a keyboard or a word processor types is a hyphen on a head
+  // that cannot draw it: "Scone −20%" (U+2212) printed as "Scone 20%", the
+  // sign gone, and an en dash in "10–12" joined the numbers.
+  text = text.replace(DASHES, "-");
 
   if (encoding === "cp852") {
     const mapped = text
